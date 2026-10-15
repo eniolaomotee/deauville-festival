@@ -148,8 +148,6 @@ A fresh clone must work with `uv sync`, then the commands of your README.
 
 
 ## Known bugs
-
-- The programme of a day is found by comparing the first 10 characters of
-  each start. A show at 01:00 on 2027-06-12 (After Hours) is listed under
-  12 June, but the festival day ends at 06:00, so it belongs to 11 June.
-  Fixed in step 04 with real dates.
+None at the moment. The festival-day bug of step 02 (After Hours at 01:00
+listed under 12 June) was fixed in step 04 with real dates: the festival day
+of a show is the date of its start minus 6 hours.
