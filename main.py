@@ -5,6 +5,8 @@ uv run main.py venues                   each venue with its slug and seats
 uv run main.py programme 2027-06-11     the programme of a festival day
 uv run main.py artist max-pellerin      the performances of an artist
 uv run main.py now 2027-06-11T21:00     what is on stage, and the next 3 shows
+uv run main add                         schedule a solo show (asks the details)
+uv run main.py cancel ID.               cancel a performance by its ID (asks for confirmation)
 """
 
 import json
@@ -16,14 +18,84 @@ DATA_FILE = "data/festival.json"
 
 # A festival day ends at 06:00: a show at 01:00 belongs to the day before.
 DAY_CHANGE = timedelta(hours=6)
-
+GAP = timedelta(minutes=30)  # gap between performances
 
 # --- Reading the data ------------------------------------------------------
 
 
 def load_festival(path: str = DATA_FILE) -> dict:
-    with open(path, encoding="utf-8") as file:
-        return json.load(file)
+    try:
+        with open(path, encoding="utf-8") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        raise ValueError(f"{path} is not found")
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            f"{path} is damaged: {error.msg} at line {error.lineno}, column {error.colno}"
+        )
+
+
+def save_festival(festival: dict, path: str = DATA_FILE) -> None:
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(festival, file, indent=2, ensure_ascii=False)
+        file.write("\n")
+
+
+def parse_day(text: str) -> date:
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        raise ValueError(f"{text!r} is not a day, use YYYY-MM-DD format") from None
+
+
+def parse_datetime(text: str) -> datetime:
+    try:
+        return datetime.fromisoformat(text)
+    except ValueError:
+        raise ValueError(
+            f"{text!r} is not a date and time, use YYYY-MM-DDTHH:MM format"
+        ) from None
+
+
+def parse_moments(text: str) -> int:
+    try:
+        return int(text)
+    except ValueError:
+        raise ValueError(f"{text!r} is not a number of minutes") from None
+
+
+def parse_minutes(text: str) -> int:
+    minutes = parse_moments(text)
+    if not 1 <= minutes <= 360:
+        raise ValueError(
+            f"{minutes} is not a duration in minutes, must be between 1 and 360"
+        )
+    return minutes
+
+
+def artists_of(performance: dict) -> list[str]:
+    """The slugs of the artists on stage in a performance."""
+    kind = performance["kind"]
+    if kind == "solo":
+        return [performance["artist"]]
+    if kind == "lineup":
+        return [performance["host"]] + performance["acts"]
+    if kind == "workshop":
+        return [performance["teacher"]]
+    return []
+
+
+def add_performance(festival: dict, new: dict) -> None:
+    check_performance(festival, new)  # if it raises, nothing is added
+    festival["performances"].append(new)
+
+
+def cancel_performance(festival: dict, id: str) -> dict:
+    performance = find_performance(festival, id)
+    if performance is None:
+        raise ValueError(f"No performance {id!r}.")
+    festival["performances"].remove(performance)
+    return performance
 
 
 # --- Slugs and lookups -----------------------------------------------------
@@ -75,6 +147,55 @@ def end_of(performance: dict) -> datetime:
 def festival_day_of(performance: dict) -> date:
     """The festival day: the date of the start, moved back 6 hours."""
     return (start_of(performance) - DAY_CHANGE).date()
+
+
+def performance_id(performance: dict) -> str:
+    """The ID of a performance, used to cancel it."""
+    return f"{performance['venue']}-{start_of(performance):%Y-%m-%d-%H%M}"
+
+
+def find_performance(festival: dict, id: str) -> dict | None:
+    for performance in festival["performances"]:
+        if performance_id(performance) == id:
+            return performance
+    return None
+
+
+def too_close(a: dict, b: dict) -> bool:
+    """True when less than GAP separates the two performances."""
+    return start_of(a) < end_of(b) + GAP and start_of(b) < end_of(a) + GAP
+
+
+def check_performance(festival: dict, new: dict) -> None:
+    """Raise ValueError, with a sentence for the organiser, if `new` breaks a rule."""
+    if not new["title"]:
+        raise ValueError("A performance needs a title.")
+    if find_venue(festival, new["venue"]) is None:
+        raise ValueError(f"No venue {new['venue']!r}.")
+    for slug in artists_of(new):
+        if find_artist(festival, slug) is None:
+            raise ValueError(f"No artist {slug!r}.")
+    if not 1 <= new["duration_minutes"] <= 360:
+        raise ValueError(
+            f"A performance lasts from 1 to 360 minutes, not {new['duration_minutes']}."
+        )
+    first = date.fromisoformat(festival["first_day"])
+    last = date.fromisoformat(festival["last_day"])
+    day = festival_day_of(new)
+    if not first <= day <= last:
+        raise ValueError(f"{day} is not a day of the festival.")
+    for other in festival["performances"]:
+        if other is new or not too_close(new, other):
+            continue
+        if other["venue"] == new["venue"]:
+            raise ValueError(
+                f"{venue_name(festival, new['venue'])} is busy with {other['title']} "
+                f"({start_of(other):%Y-%m-%d %H:%M}-{end_of(other):%H:%M})."
+            )
+        for slug in artists_of(new):
+            if slug in artists_of(other):
+                name = find_artist(festival, slug)["name"]
+                raise ValueError(f"{name} is on stage in {other['title']}.")
 
 
 # --- Questions about the festival ------------------------------------------
@@ -204,24 +325,59 @@ def show_now(festival: dict, at: datetime) -> None:
         print(f"- {describe(festival, performance)}")
 
 
+def ask_solo() -> dict:
+    """Ask the details of a solo show; raise ValueError on a wrong answer."""
+    title = input("Title: ").strip()
+    artist = input("Artist (slug): ").strip()
+    venue = input("Venue (slug): ").strip()
+    start = parse_datetime(input("Start (YYYY-MM-DDTHH:MM): ").strip())
+    minutes = parse_minutes(input("Duration (minutes): ").strip())
+    return {
+        "kind": "solo",
+        "title": title,
+        "venue": venue,
+        "start": f"{start:%Y-%m-%dT%H:%M}",
+        "duration_minutes": minutes,
+        "description": "",
+        "artist": artist,
+        "min_age": 0,
+    }
+
+
 # --- Commands --------------------------------------------------------------
 
 
-def main() -> None:
+def run(arguments: list[str]) -> None:
     festival = load_festival()
-    arguments = sys.argv[1:]
     if len(arguments) == 0:
         show_summary(festival)
     elif arguments == ["venues"]:
         show_venues(festival)
     elif arguments[0] == "programme" and len(arguments) == 2:
-        show_programme(festival, date.fromisoformat(arguments[1]))
+        show_programme(festival, parse_day(arguments[1]))
     elif arguments[0] == "artist" and len(arguments) == 2:
         show_artist(festival, arguments[1])
     elif arguments[0] == "now" and len(arguments) == 2:
-        show_now(festival, datetime.fromisoformat(arguments[1]))
+        show_now(festival, parse_datetime(arguments[1]))
+    elif arguments == ["add"]:
+        new = ask_solo()
+        add_performance(festival, new)
+        save_festival(festival)
+        print(f"Added: {performance_id(new)}")
+    elif arguments[0] == "cancel" and len(arguments) == 2:
+        cancelled = cancel_performance(festival, arguments[1])
+        save_festival(festival)
+        print(f"Cancelled: {cancelled['title']}")
     else:
         print(__doc__)
+
+
+def main() -> None:
+    try:
+        run(sys.argv[1:])
+    except ValueError as error:
+        print(f"Error: {error}")
+        sys.exit(1)
 
 
 main()
