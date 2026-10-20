@@ -151,3 +151,19 @@ A fresh clone must work with `uv sync`, then the commands of your README.
 None at the moment. The festival-day bug of step 02 (After Hours at 01:00
 listed under 12 June) was fixed in step 04 with real dates: the festival day
 of a show is the date of its start minus 6 hours.
+
+
+
+## Structure
+
+- `festival.py` holds the model and the rules. `main.py` is the command line,
+  `api.py` the web routes: both import the model, neither recomputes anything.
+- `Venue` (dataclass): name, capacity, address. Knows its `slug`. Checks the
+  name is not empty and there is at least one seat.
+- `Artist` (dataclass): name, bio, photo_url. Knows its `slug`.
+- `Performance`: one class for the three kinds, with `None` fields for the
+  others (step 09 splits it). Holds a `Venue` and `Artist` objects, not slugs.
+  Computes `end`, `festival_day`, `id`, `artists`, `capacity`, `places_left`,
+  `summary`. Answers `role_of`, `involves`, `is_on_stage`, `too_close`.
+  Has two shapes: `to_view()` for API.md, `to_data()` for the file.
+- The festival itself is still a dict of lists; step 08 makes it a class.

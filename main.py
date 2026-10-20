@@ -1,24 +1,3 @@
-import sys
-from datetime import date, datetime
-
-from festival import (
-    add_performance,
-    artist_performances,
-    cancel_performance,
-    end_of,
-    festival_days,
-    find_artist,
-    load_festival,
-    on_stage,
-    performance_id,
-    programme,
-    save_festival,
-    slugify,
-    start_of,
-    up_next,
-    venue_name,
-)
-
 """Deauville Festival du Rire - the programme from the terminal.
 
 uv run main.py                          the summary of the festival
@@ -30,9 +9,10 @@ uv run main add                         schedule a solo show (asks the details)
 uv run main.py cancel ID.               cancel a performance by its ID (asks for confirmation)
 """
 
+import sys
+from datetime import date, datetime
 
-DATA_FILE = "data/festival.json"
-
+from festival import Festival, load_festival, save_festival
 
 # --- Reading the data ------------------------------------------------------
 
@@ -60,66 +40,58 @@ def parse_minutes(text: str) -> int:
         raise ValueError(f"{text!r} is not a number of minutes") from None
 
 
-def describe(festival: dict, performance: dict) -> str:
-    """'10:30-12:30 | La Cabane | Improv for Beginners (workshop)'."""
-    start, end = start_of(performance), end_of(performance)
-    venue = venue_name(festival, performance["venue"])
-    return f"{start:%H:%M}-{end:%H:%M} | {venue} | {performance['title']} ({performance['kind']})"
-
-
-def show_summary(festival: dict) -> None:
-    print(festival["name"])
-    print(f"From {festival['first_day']} to {festival['last_day']}")
+def show_summary(festival: Festival) -> None:
+    print(festival.name)
+    print(f"From {festival.first_day} to {festival.last_day}")
     print(
-        f"{len(festival['venues'])} venues, {len(festival['artists'])} artists, "
-        f"{len(festival['performances'])} performances"
+        f"{len(festival.venues)} venues, {len(festival.artists)} artists, "
+        f"{len(festival.performances)} performances"
     )
 
 
-def show_venues(festival: dict) -> None:
+def show_venues(festival: Festival) -> None:
     total = 0
-    for venue in festival["venues"]:
-        print(f"{slugify(venue['name'])}: {venue['name']}, {venue['capacity']} seats")
-        total += venue["capacity"]
+    for venue in festival.venues:
+        print(f"{venue.slug}: {venue.name}, {venue.capacity} seats")
+        total += venue.capacity
     print(f"Total: {total} seats")
 
 
-def show_programme(festival: dict, day: date) -> None:
-    days = festival_days(festival)
-    if day not in days:
-        print(f"No performance on {day}. Days: {', '.join(str(d) for d in days)}")
+def show_programme(festival: Festival, day: date) -> None:
+    if day not in festival.days:
+        print(
+            f"No performance on {day}. Days: {', '.join(str(d) for d in festival.days)}"
+        )
         return
     print(f"Programme for {day:%A %d %B}:")
-    for performance in programme(festival, day):
-        print(describe(festival, performance))
+    for performance in festival.programme(day):
+        print(performance)
 
 
-def show_artist(festival: dict, slug: str) -> None:
-    artist = find_artist(festival, slug)
+def show_artist(festival: Festival, slug: str):
+    artist = festival.artist(slug)
     if artist is None:
         print(f"No artist {slug!r}.")
-        return
-    print(artist["name"])
-    for performance, role in artist_performances(festival, slug):
-        start, end = start_of(performance), end_of(performance)
-        venue = venue_name(festival, performance["venue"])
+    for performance in festival.performances_of(artist):
         print(
-            f"{start:%a %d %H:%M}-{end:%H:%M} | {venue} | "
-            f"{performance['title']} ({role})"
+            f"{performance.start:%a %d %H:%M}-{performance.end:%H:%M} | "
+            f"{performance.venue.name} | {performance.title} "
+            f"({performance.role_of(artist)})"
         )
 
 
-def show_now(festival: dict, at: datetime) -> None:
+def show_now(festival: Festival, at: datetime) -> None:
     print(f"On stage at {at:%Y-%m-%d %H:%M}:")
-    current = on_stage(festival, at)
+    current = festival.on_stage(at)
     if not current:
         print("- nothing")
     for performance in current:
-        venue = venue_name(festival, performance["venue"])
-        print(f"- {performance['title']} at {venue}, until {end_of(performance):%H:%M}")
-    print("Up next:")
-    for performance in up_next(festival, at):
-        print(f"- {describe(festival, performance)}")
+        print(
+            f"- {performance.title} at {performance.venue.name}, "
+            f"until {performance.end:%H:%M}"
+        )
+    for performance in festival.up_next(at):
+        print(f"- {performance}")
 
 
 def ask_solo() -> dict:
@@ -157,14 +129,14 @@ def run(arguments: list[str]) -> None:
     elif arguments[0] == "now" and len(arguments) == 2:
         show_now(festival, parse_datetime(arguments[1]))
     elif arguments == ["add"]:
-        new = ask_solo()
-        add_performance(festival, new)
+        new = festival.make_performance(ask_solo())
+        festival.schedule(new)
         save_festival(festival)
-        print(f"Added: {performance_id(new)}")
+        print(f"Added: {new.id}")
     elif arguments[0] == "cancel" and len(arguments) == 2:
-        cancelled = cancel_performance(festival, arguments[1])
+        cancelled = festival.cancel(arguments[1])
         save_festival(festival)
-        print(f"Cancelled: {cancelled['title']}")
+        print(f"Cancelled: {cancelled.title}")
     else:
         print(__doc__)
 
