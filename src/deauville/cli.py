@@ -1,21 +1,26 @@
 """Deauville Festival du Rire - the programme from the terminal.
 
-uv run main.py                          the summary of the festival
-uv run main.py venues                   each venue with its slug and seats
-uv run main.py programme 2027-06-11     the programme of a festival day
-uv run main.py artist max-pellerin      the performances of an artist
-uv run main.py now 2027-06-11T21:00     what is on stage, and the next 3 shows
-uv run main add                         schedule a solo show (asks the details)
-uv run main.py cancel ID.               cancel a performance by its ID (asks for confirmation)
+uv run deauville                          the summary of the festival
+uv run deauville venues                   each venue with its slug and seats
+uv run deauville programme 2027-06-11     the programme of a festival day
+uv run deauville artist max-pellerin      the performances of an artist
+uv run deauville now 2027-06-11T21:00     what is on stage, and the next 3 shows
+uv run deauville add                      schedule a solo show (asks the details)
+uv run deauville cancel ID                cancel a performance, e.g. le-kiosque-2027-06-12-0100
+uv run deauville serve [--port 8000]      start the website, the admin and the API
+
+Option, before the command: --data PATH   another data file (default data/festival.json)
 """
 
 import sys
 from datetime import date, datetime
 
-from errors import FestivalError, InvalidError
-from festival import Festival, load_festival, save_festival
+import uvicorn
 
-# --- Reading the data ------------------------------------------------------
+from .api import create_app
+from .errors import FestivalError, InvalidError
+from .festival import Festival
+from .storage import JsonStorage, Storage
 
 
 def parse_day(text: str) -> date:
@@ -116,8 +121,16 @@ def ask_solo() -> dict:
 # --- Commands --------------------------------------------------------------
 
 
-def run(arguments: list[str]) -> None:
-    festival = load_festival()
+def run(arguments: list[str], storage: Storage) -> None:
+    if arguments[:1] == ["serve"]:
+        port = (
+            int(arguments[2])
+            if arguments[1:2] == ["--port"] and len(arguments) == 3
+            else 8000
+        )
+        uvicorn.run(create_app(storage), host="127.0.0.1", port=port)
+        return
+    festival = storage.load()
     if len(arguments) == 0:
         show_summary(festival)
     elif arguments == ["venues"]:
@@ -131,20 +144,24 @@ def run(arguments: list[str]) -> None:
     elif arguments == ["add"]:
         new = festival.make_performance(ask_solo())
         festival.schedule(new)
-        save_festival(festival)
+        storage.save(festival)
         print(f"Added: {new.id}")
     elif arguments[0] == "cancel" and len(arguments) == 2:
         cancelled = festival.cancel(arguments[1])
-        save_festival(festival)
+        storage.save(festival)
         print(f"Cancelled: {cancelled.title}")
     else:
         print(__doc__)
 
 
 def main() -> None:
+    arguments = sys.argv[1:]
+    path = "data/festival.json"
+    if arguments[:1] == ["--data"] and len(arguments) >= 2:
+        path, arguments = arguments[1], arguments[2:]
     try:
-        run(sys.argv[1:])
-    except FestivalError as error:
+        run(arguments, JsonStorage(path))
+    except FestivalError as error:  # one except for the whole family
         print(f"Error: {error}")
         sys.exit(1)
 

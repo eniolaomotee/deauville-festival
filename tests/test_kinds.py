@@ -4,17 +4,10 @@ from datetime import date, datetime
 
 import pytest
 
-from errors import ConflictError, InvalidError
-from festival import (
-    Artist,
-    Festival,
-    Lineup,
-    Performance,
-    SoloShow,
-    Venue,
-    Workshop,
-    load_festival,
-)
+from deauville.errors import ConflictError, InvalidError
+from deauville.festival import Festival
+from deauville.model import Artist, Lineup, Performance, SoloShow, Venue, Workshop
+from deauville.storage import JsonStorage
 
 
 @pytest.fixture
@@ -71,7 +64,7 @@ def test_the_kind_picks_the_class(festival):
 
 
 def test_summaries_from_the_data_file():
-    festival = load_festival("data/festival.json")
+    festival = JsonStorage("data/festival.json").load()
     assert festival.performance("le-kiosque-2027-06-12-0100").summary == (
         "hosted by Tom Vasseur, with Hugo Lemaire, Maya Choukri"
     )

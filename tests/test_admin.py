@@ -2,8 +2,9 @@ from datetime import date, datetime
 
 import pytest
 
-from errors import ConflictError, InvalidError, NotFoundError
-from festival import Artist, Festival, Lineup, SoloShow, Venue, Workshop
+from deauville.errors import ConflictError, InvalidError, NotFoundError
+from deauville.festival import Festival
+from deauville.model import Artist, Lineup, SoloShow, Venue, Workshop
 
 
 @pytest.fixture
