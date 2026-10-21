@@ -18,6 +18,7 @@ app = FastAPI(title="Deauville Festival du Rire")
 
 STATUS = {NotFoundError: 404, ConflictError: 409, InvalidError: 422, StorageError: 500}
 
+
 # Base Models
 class ArtistIn(BaseModel):
     name: str
@@ -51,11 +52,11 @@ class ParticipantIn(BaseModel):
     name: str
 
 
-
 @app.exception_handler(FestivalError)
 def festival_error(request: Request, error: FestivalError) -> JSONResponse:
     status = STATUS.get(type(error), 400)
     return JSONResponse(status_code=status, content={"detail": str(error)})
+
 
 @app.get("/api/festival")
 def read_festival() -> dict:
@@ -112,6 +113,7 @@ def read_now(at: datetime | None = None) -> dict:
         "up_next": [p.to_view() for p in festival.up_next(at)],
     }
 
+
 @app.post("/api/artists", status_code=201)
 def create_artist(body: ArtistIn) -> dict:
     festival = load_festival()
@@ -120,13 +122,15 @@ def create_artist(body: ArtistIn) -> dict:
     save_festival(festival)
     return artist.to_view()
 
+
 @app.post("/api/performances", status_code=201)
 def create_performance(body: PerformanceIn) -> dict:
     festival = load_festival()
     new = festival.make_performance(body.as_data())
     festival.schedule(new)
     save_festival(festival)
-    return new.to_view
+    return new.to_view()
+
 
 @app.put("/api/performances/{id}")
 def replace_performance(id: str, body: PerformanceIn) -> dict:
@@ -143,12 +147,14 @@ def delete_performance(id: str) -> Response:
     save_festival(festival)
     return Response(status_code=204)
 
+
 @app.post("/api/performances/{id}/participants", status_code=201)
 def register_participant(id: str, body: ParticipantIn) -> dict:
     festival = load_festival()
     workshop = festival.register(id, body.name)
     save_festival(festival)
     return workshop.to_view()
+
 
 app.mount("/admin", StaticFiles(directory="web/admin", html=True), name="admin")
 app.mount("/", StaticFiles(directory="web/public", html=True), name="public")

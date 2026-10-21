@@ -1,4 +1,5 @@
 "the errors of the festival: one fam and what went wrong"
+
 "The command line catches FestivalError and prints the sentence. The API maps "
 "each type to a status code (see API.md, Errors)"
 

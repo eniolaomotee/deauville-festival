@@ -2,6 +2,7 @@ from datetime import date, datetime
 
 import pytest
 
+from errors import ConflictError, InvalidError, NotFoundError
 from festival import Artist, Festival, Lineup, SoloShow, Venue
 
 
@@ -40,7 +41,7 @@ def solo(festival, title, start, minutes, artist, venue="le-kiosque") -> SoloSho
 
 
 def test_a_venue_needs_30_minutes_between_two_shows(festival):
-    with pytest.raises(ValueError, match="Le Kiosque is busy with After Hours"):
+    with pytest.raises(ConflictError, match="Le Kiosque is busy with After Hours"):
         festival.schedule(
             solo(festival, "Too Close", "2027-06-12T02:15", 30, "nora-lebrun")
         )
@@ -48,7 +49,7 @@ def test_a_venue_needs_30_minutes_between_two_shows(festival):
 
 
 def test_an_artist_cannot_be_in_two_venues_at_once(festival):
-    with pytest.raises(ValueError, match="Nora Lebrun is on stage in Late Laughs"):
+    with pytest.raises(ConflictError, match="Nora Lebrun is on stage in Late Laughs"):
         festival.schedule(
             solo(
                 festival,
@@ -62,7 +63,7 @@ def test_an_artist_cannot_be_in_two_venues_at_once(festival):
 
 
 def test_an_act_of_a_lineup_is_busy_too(festival):
-    with pytest.raises(ValueError, match="Hugo Lemaire is on stage in After Hours"):
+    with pytest.raises(ConflictError, match="Hugo Lemaire is on stage in After Hours"):
         festival.schedule(
             solo(
                 festival,
@@ -83,7 +84,7 @@ def test_a_show_at_one_am_belongs_to_the_previous_day(festival):
 
 
 def test_a_day_outside_the_festival_is_refused(festival):
-    with pytest.raises(ValueError, match="not a day of the festival"):
+    with pytest.raises(ConflictError, match="not a day of the festival"):
         festival.schedule(
             solo(festival, "Too Late", "2027-06-14T20:00", 60, "nora-lebrun")
         )
@@ -91,12 +92,12 @@ def test_a_day_outside_the_festival_is_refused(festival):
 
 @pytest.mark.parametrize("minutes", [0, 361])
 def test_duration_out_of_range_is_refused(festival, minutes):
-    with pytest.raises(ValueError, match="1 to 360 minutes"):
+    with pytest.raises(InvalidError, match="1 to 360 minutes"):
         solo(festival, "Odd", "2027-06-12T10:00", minutes, "nora-lebrun")
 
 
 def test_an_unknown_venue_is_refused(festival):
-    with pytest.raises(ValueError, match="No venue 'nowhere'"):
+    with pytest.raises(NotFoundError, match="No venue 'nowhere'"):
         festival.make_performance(
             {
                 "kind": "solo",
@@ -110,7 +111,7 @@ def test_an_unknown_venue_is_refused(festival):
 
 
 def test_an_unknown_artist_is_refused(festival):
-    with pytest.raises(ValueError, match="No artist 'nobody'"):
+    with pytest.raises(NotFoundError, match="No artist 'nobody'"):
         festival.make_performance(
             {
                 "kind": "solo",

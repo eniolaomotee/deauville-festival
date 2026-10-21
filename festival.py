@@ -277,7 +277,7 @@ class Lineup(Performance):
             )
         self.host = host
         self._acts = list(acts)
-    
+
     @property
     def acts(self) -> list[Artist]:
         "A copy: the lineup changes only through it's methods"
@@ -332,7 +332,7 @@ class Workshop(Performance):
         self._participants: list[str] = []
         for name in participants or []:
             self.register(name)
-    
+
     @property
     def participants(self) -> list[str]:
         "A copy: register() is the only way in."
@@ -387,7 +387,8 @@ class Workshop(Performance):
             "max_participants": data["max_participants"],
             "participants": data.get("participants", []),
         }
-        
+
+
 def parse_start(value: str | datetime) -> datetime:
     """'2027-06-12T01:00' -> datetime; a datetime passes through."""
     if isinstance(value, datetime):
@@ -395,9 +396,9 @@ def parse_start(value: str | datetime) -> datetime:
     try:
         return datetime.fromisoformat(value)
     except (TypeError, ValueError):
-        raise InvalidError(f"{value!r} is not a date and time, use YYYY-MM-DDTHH:MM.") from None
-
-
+        raise InvalidError(
+            f"{value!r} is not a date and time, use YYYY-MM-DDTHH:MM."
+        ) from None
 
 
 # The "kind" field of the file chooses the class: here and nowhere else
@@ -537,7 +538,6 @@ class Festival:
                 if other.involves(artist):
                     raise ConflictError(f"{artist.name} is on stage in {other.title}.")
 
-
     def replace(self, id: str, data: dict) -> Performance:
         """Move or edit a performance. If the new version breaks a rule, nothing changes."""
         old = self.performance(id)
@@ -554,7 +554,7 @@ class Festival:
             raise InvalidError(f"{performance.title} is not a workshop.")
         performance.register(name)
         return performance
-    
+
     def schedule(self, new: Performance) -> None:
         self.check(new)  # if it raises, nothing is added
         self._performances.append(new)

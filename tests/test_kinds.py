@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 import pytest
 
+from errors import ConflictError, InvalidError
 from festival import (
     Artist,
     Festival,
@@ -65,7 +66,7 @@ def test_the_kind_picks_the_class(festival):
         "artist": "nora-lebrun",
     }
     assert isinstance(festival.make_performance(data), SoloShow)
-    with pytest.raises(ValueError, match="not a kind of performance"):
+    with pytest.raises(InvalidError, match="not a kind of performance"):
         festival.make_performance(data | {"kind": "opera"})
 
 
@@ -85,7 +86,7 @@ def test_summaries_from_the_data_file():
 # solo
 @pytest.mark.parametrize("age", [-1, 19])
 def test_minimum_age_goes_from_0_to_18(festival, age):
-    with pytest.raises(ValueError, match="0 to 18"):
+    with pytest.raises(InvalidError, match="0 to 18"):
         SoloShow(
             "X",
             festival.venue("la-cabane"),
@@ -98,22 +99,22 @@ def test_minimum_age_goes_from_0_to_18(festival, age):
 
 # Lineup
 def test_a_lineup_needs_two_acts(festival):
-    with pytest.raises(ValueError, match="at least two acts"):
+    with pytest.raises(InvalidError, match="at least two acts"):
         lineup(festival, 60, "nora-lebrun")
 
 
 def test_an_act_appears_once(festival):
-    with pytest.raises(ValueError, match="cannot appear twice"):
+    with pytest.raises(InvalidError, match="cannot appear twice"):
         lineup(festival, 60, "nora-lebrun", "nora-lebrun")
 
 
 def test_the_host_is_not_an_act(festival):
-    with pytest.raises(ValueError, match="hosts this lineup"):
+    with pytest.raises(InvalidError, match="hosts this lineup"):
         lineup(festival, 60, "nora-lebrun", "tom-vasseur")
 
 
 def test_three_acts_need_36_minutes(festival):
-    with pytest.raises(ValueError, match="at least 36 minutes"):
+    with pytest.raises(InvalidError, match="at least 36 minutes"):
         lineup(festival, 35, "nora-lebrun", "hugo-lemaire", "maya-choukri")
     gala = lineup(festival, 36, "nora-lebrun", "hugo-lemaire", "maya-choukri")
     assert gala.role_of(festival.artist("hugo-lemaire")) == "act"
@@ -127,16 +128,16 @@ def test_places_are_limited_by_the_venue(festival):
 
 
 def test_a_workshop_needs_one_place(festival):
-    with pytest.raises(ValueError, match="at least one place"):
+    with pytest.raises(InvalidError, match="at least one place"):
         workshop(festival, 0)
 
 
 def test_registration_until_full_and_once_per_name(festival):
     lab = workshop(festival, 2, participants=["Camille R."])
-    with pytest.raises(ValueError, match="already registered"):
+    with pytest.raises(ConflictError, match="already registered"):
         lab.register("camille r.")
     lab.register("Yanis B.")
     assert lab.places_left == 0
-    with pytest.raises(ValueError, match="is full"):
+    with pytest.raises(ConflictError, match="is full"):
         lab.register("Lou M.")
     assert lab.participants == ["Camille R.", "Yanis B."]
