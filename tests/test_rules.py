@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 import pytest
 
-from festival import Artist, Festival, Performance, Venue
+from festival import Artist, Festival, Venue, Lineup, SoloShow
 
 
 @pytest.fixture
@@ -16,8 +16,7 @@ def festival() -> Festival:
         solo(festival, "Late Laughs", "2027-06-11T23:30", 60, "nora-lebrun")
     )
     festival.schedule(
-        Performance(
-            "lineup",
+        Lineup(
             "After Hours",
             festival.venue("le-kiosque"),
             datetime(2027, 6, 12, 1, 0),
@@ -30,9 +29,8 @@ def festival() -> Festival:
     return festival
 
 
-def solo(festival, title, start, minutes, artist, venue="le-kiosque") -> Performance:
-    return Performance(
-        "solo",
+def solo(festival, title, start, minutes, artist, venue="le-kiosque") -> SoloShow:
+    return SoloShow(
         title,
         festival.venue(venue),
         datetime.fromisoformat(start),
