@@ -17,6 +17,7 @@ GAP = timedelta(minutes=30)
 
 @dataclass(eq=False)
 class Artist:
+    """A performer: a name, a slug built from it, and a short bio."""
     name: str
     bio: str = ""
     photo_url: str = ""
@@ -51,6 +52,7 @@ class Artist:
 
 @dataclass(eq=False)
 class Venue:
+    """A place of the festival: a name, a slug and a number of seats."""
     name: str
     capacity: int
     address: str = ""
@@ -219,8 +221,9 @@ class Performance(ABC):
             **cls.own_args(festival, data),
         )
 
-
 class SoloShow(Performance):
+    """One artist alone on stage, with a title."""
+
     kind = "solo"
 
     def __init__(self, *common, artist: Artist, min_age: int = 0, **rest) -> None:
@@ -256,6 +259,8 @@ class SoloShow(Performance):
 
 
 class Lineup(Performance):
+    """Several artists in turn, each with a few minutes, under one host."""
+
     kind = "lineup"
 
     MINUTES_PER_ACT = 10
@@ -316,6 +321,8 @@ class Lineup(Performance):
 
 
 class Workshop(Performance):
+    """An artist teaching a small group: limited places, people register."""
+
     kind = "workshop"
 
     def __init__(

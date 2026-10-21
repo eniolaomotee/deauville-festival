@@ -47,7 +47,7 @@ class JsonStorage(Storage):
 
 
 class MemoryStorage(Storage):
-    """Nothing on disk: for tests. Keeps the data, not the objects, like a file would."""
+    """Nothing on disk, for tests. Keeps the data, not the objects, like a file."""
 
     def __init__(self, festival: Festival) -> None:
         self._data = festival.to_data()

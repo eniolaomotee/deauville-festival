@@ -1,1 +1,1 @@
-"""Deauville Festival du Rire: the programme, its rules, a command line and a web API."""
+"""Deauville Festival du Rire: the programme, its rules, a CLI and a web API."""

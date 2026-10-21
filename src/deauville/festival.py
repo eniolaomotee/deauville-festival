@@ -1,4 +1,4 @@
-"""The festival: holds venues, artists and the schedule. Every change goes through it."""
+"""The festival: venues, artists and the schedule. Every change goes through it."""
 
 from datetime import date, datetime, timedelta
 
@@ -101,9 +101,9 @@ class Festival:
         return PERFORMANCE_KINDS[kind].from_data(self, data)
 
     def check(self, new: Performance, ignoring: Performance | None = None) -> None:
-        """
-        Raise a Festival error with a sentence for the organiser if 'new' breaks
-        a rule, 'ignoring' is the performance that 'new' replaces: it does not count as busy.
+        """Raise a Festival error with a sentence for the organiser if 'new' breaks
+        a rule. 'ignoring' is the performance that 'new' replaces: it does not
+        count as busy.
         """
         if new.venue not in self._venues:
             raise NotFoundError(f"No venue {new.venue.slug!r}.")
@@ -125,7 +125,7 @@ class Festival:
                     raise ConflictError(f"{artist.name} is on stage in {other.title}.")
 
     def replace(self, id: str, data: dict) -> Performance:
-        """Move or edit a performance. If the new version breaks a rule, nothing changes."""
+        """Move or edit a performance. If the new version breaks a rule, nothing moves."""  # noqa: E501
         old = self.performance(id)
         new = self.make_performance(data)
         self.check(new, ignoring=old)  # raises before anything is touched

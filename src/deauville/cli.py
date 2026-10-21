@@ -6,7 +6,7 @@ uv run deauville programme 2027-06-11     the programme of a festival day
 uv run deauville artist max-pellerin      the performances of an artist
 uv run deauville now 2027-06-11T21:00     what is on stage, and the next 3 shows
 uv run deauville add                      schedule a solo show (asks the details)
-uv run deauville cancel ID                cancel a performance, e.g. le-kiosque-2027-06-12-0100
+uv run deauville cancel ID                cancel a performance (ID: its slug)
 uv run deauville serve [--port 8000]      start the website, the admin and the API
 
 Option, before the command: --data PATH   another data file (default data/festival.json)
@@ -74,7 +74,7 @@ def show_programme(festival: Festival, day: date) -> None:
         print(performance)
 
 
-def show_artist(festival: Festival, slug: str):
+def show_artist(festival: Festival, slug: str) -> None:
     artist = festival.artist(slug)
     print(artist.name)
     for performance in festival.performances_of(artist):

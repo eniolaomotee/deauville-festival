@@ -21,6 +21,7 @@ STATUS = {NotFoundError: 404, ConflictError: 409, InvalidError: 422, StorageErro
 
 # Base Models
 class ArtistIn(BaseModel):
+    """The body of POST /api/artists."""
     name: str
     bio: str = ""
     photo_url: str = ""
@@ -47,8 +48,8 @@ class PerformanceIn(BaseModel):
         """The dict the festival builds a performance from: no None fields."""
         return self.model_dump(exclude_none=True)
 
-
 class ParticipantIn(BaseModel):
+    """The body of POST /api/performances/{id}/participants."""
     name: str
 
 

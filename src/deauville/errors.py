@@ -13,7 +13,7 @@ class NotFoundError(FestivalError):
 
 
 class ConflictError(FestivalError):
-    """The change clashes with what exists: busy, full, outside the days, duplicate (409)."""
+    """The change clashes with what exists: busy, full, off days, duplicate (409)."""
 
 
 class InvalidError(FestivalError):
