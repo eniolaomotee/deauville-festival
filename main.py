@@ -12,6 +12,7 @@ uv run main.py cancel ID.               cancel a performance by its ID (asks for
 import sys
 from datetime import date, datetime
 
+from errors import FestivalError, InvalidError
 from festival import Festival, load_festival, save_festival
 
 # --- Reading the data ------------------------------------------------------
@@ -21,14 +22,14 @@ def parse_day(text: str) -> date:
     try:
         return date.fromisoformat(text)
     except ValueError:
-        raise ValueError(f"{text!r} is not a day, use YYYY-MM-DD format") from None
+        raise InvalidError(f"{text!r} is not a day, use YYYY-MM-DD format") from None
 
 
 def parse_datetime(text: str) -> datetime:
     try:
         return datetime.fromisoformat(text)
     except ValueError:
-        raise ValueError(
+        raise InvalidError(
             f"{text!r} is not a date and time, use YYYY-MM-DDTHH:MM format"
         ) from None
 
@@ -36,7 +37,7 @@ def parse_datetime(text: str) -> datetime:
 def parse_minutes(text: str) -> int:
     try:
         return int(text)
-    except ValueError:
+    except InvalidError:
         raise ValueError(f"{text!r} is not a number of minutes") from None
 
 
@@ -70,8 +71,7 @@ def show_programme(festival: Festival, day: date) -> None:
 
 def show_artist(festival: Festival, slug: str):
     artist = festival.artist(slug)
-    if artist is None:
-        print(f"No artist {slug!r}.")
+    print(artist.name)
     for performance in festival.performances_of(artist):
         print(
             f"{performance.start:%a %d %H:%M}-{performance.end:%H:%M} | "
@@ -144,7 +144,7 @@ def run(arguments: list[str]) -> None:
 def main() -> None:
     try:
         run(sys.argv[1:])
-    except ValueError as error:
+    except FestivalError as error:
         print(f"Error: {error}")
         sys.exit(1)
 

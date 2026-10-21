@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 import pytest
 
-from festival import Artist, Festival, Venue, Lineup, SoloShow
+from festival import Artist, Festival, Lineup, SoloShow, Venue
 
 
 @pytest.fixture
