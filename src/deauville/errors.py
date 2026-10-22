@@ -1,9 +1,9 @@
-"the errors of the festival: one fam and what went wrong"
+"""The errors of the festival: one family, one class per kind of broken rule.
 
-"The command line catches FestivalError and prints the sentence. The API maps "
-"each type to a status code (see API.md, Errors)"
+The command line catches FestivalError and prints the sentence. The API maps
+each class to a status code (see API.md, Errors).
 
-
+"""
 class FestivalError(Exception):
     """Every error raised by the festival. The message is a sentence for the user."""
 

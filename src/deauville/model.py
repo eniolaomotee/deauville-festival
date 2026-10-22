@@ -38,7 +38,7 @@ class Artist:
     def __hash__(self) -> int:
         return hash(self.slug)
 
-    def to_view(self) -> str:
+    def to_view(self) -> dict:
         return {
             "slug": self.slug,
             "name": self.name,
